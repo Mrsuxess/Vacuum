@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppConfig } from '@/lib/config';
+import { getDatabaseHealthStatus } from '@/lib/db';
 import { ApiSecurity } from '@/lib/apiSecurity';
 import { VacuumTokenService } from '@/services/vacuumTokenService';
 import { JupiterService } from '@/services/jupiterService';
@@ -17,18 +18,22 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const network = ApiSecurity.validateNetwork(searchParams.get('network'), 'devnet');
+    const network = ApiSecurity.validateNetwork(searchParams.get('network'));
 
     const config = getAppConfig();
+    const dbHealth = getDatabaseHealthStatus();
     const destinations = VacuumTokenService.getSupportedDestinations(network);
     const vacuumUtilities = VacuumTokenService.getTokenUtilityStatus(network);
     const jupiterStatus = JupiterService.getIntegrationStatus();
     const sponsorshipStatus = SponsorshipService.getSponsorPublicStatus(network);
 
     return NextResponse.json({
-      ok: true,
+      ok: dbHealth.healthy,
+      status: dbHealth.healthy ? 'healthy' : 'degraded',
       network,
+      serverEnforcedNetwork: config.serverEnforcedNetwork,
       rpcEndpointConfigured: Boolean(config.rpc[network]),
+      persistence: dbHealth,
       destinations,
       vacuumToken: vacuumUtilities,
       jupiter: jupiterStatus,

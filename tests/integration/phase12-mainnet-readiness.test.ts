@@ -427,5 +427,18 @@ describe('PHASE 12 — Mainnet Migration, Network Isolation & Production Readine
       expect(session.expectedRentReclaimSol).toBeCloseTo(0.004079, 5);
       expect(session.expectedRentReclaimUsd).toBeGreaterThan(0.7);
     });
+
+    it('refuses to run ephemeral SQLite on Vercel serverless without persistent PostgreSQL configuration', () => {
+      process.env.VERCEL = '1';
+      delete process.env.DATABASE_URL;
+      delete process.env.POSTGRES_URL;
+      delete process.env.ALLOW_EPHEMERAL_VERCEL_SQLITE;
+
+      expect(() => getDb()).toThrow(
+        /Vercel serverless environment detected without persistent PostgreSQL configuration/
+      );
+
+      delete process.env.VERCEL;
+    });
   });
 });

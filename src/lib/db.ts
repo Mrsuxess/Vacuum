@@ -11,6 +11,17 @@ let dbInstance: InstanceType<typeof DatabaseSync> | null = null;
 let inTransactionDepth = 0;
 
 export function getDb(): InstanceType<typeof DatabaseSync> {
+  if (
+    process.env.VERCEL === '1' &&
+    !process.env.DATABASE_URL?.trim() &&
+    !process.env.POSTGRES_URL?.trim() &&
+    process.env.ALLOW_EPHEMERAL_VERCEL_SQLITE !== 'true'
+  ) {
+    throw new Error(
+      'Vercel serverless environment detected without persistent PostgreSQL configuration (DATABASE_URL / POSTGRES_URL). Refusing to run durable sweep sessions or sponsorship budget locks on ephemeral serverless /tmp SQLite storage.'
+    );
+  }
+
   if (dbInstance) {
     return dbInstance;
   }
@@ -99,6 +110,36 @@ export function resetTestDb(): void {
     }
     dbInstance = null;
     inTransactionDepth = 0;
+  }
+}
+
+export function getDatabaseHealthStatus() {
+  const isVercelServerless = process.env.VERCEL === '1';
+  const hasPostgresUrl = Boolean(
+    process.env.DATABASE_URL?.trim() || process.env.POSTGRES_URL?.trim()
+  );
+
+  try {
+    const db = getDb();
+    const row = db.prepare('SELECT 1 as ok').get() as { ok: number } | undefined;
+    return {
+      healthy: row?.ok === 1,
+      engine: 'node:sqlite (WAL)',
+      isVercelServerless,
+      hasPostgresUrl,
+      durablePersistence: !isVercelServerless || hasPostgresUrl,
+      migrationScriptsReady: true,
+    };
+  } catch (err) {
+    return {
+      healthy: false,
+      engine: 'node:sqlite (WAL)',
+      isVercelServerless,
+      hasPostgresUrl,
+      durablePersistence: false,
+      migrationScriptsReady: true,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
