@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: vacuum-solana-sweeper
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/status
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SOLANA_NETWORK
+        value: devnet
+      - key: NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL
+        value: https://api.mainnet-beta.solana.com
+      - key: SOLANA_DEVNET_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: SOLANA_MAINNET_RPC_URL
+        value: https://api.mainnet-beta.solana.com
+      - key: JUPITER_API_BASE_URL
+        value: https://api.jup.ag/swap/v2
+      - key: JUPITER_PRICE_API_URL
+        value: https://api.jup.ag/price/v2
+      - key: SPONSORSHIP_ENABLED
+        value: "true"
+      - key: DATABASE_PATH
+        value: /tmp/vacuum-data/vacuum.db
